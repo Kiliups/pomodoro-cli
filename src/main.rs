@@ -30,9 +30,18 @@ struct Cli {
 }
 
 async fn init_db() -> Result<SqlitePool, sqlx::Error> {
+    let config_dir = dirs::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("pomodoro");
+
+    std::fs::create_dir_all(&config_dir).expect("Failed to create config directory");
+
+    let db_path = config_dir.join("database.db");
+    let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
+
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect("sqlite:./database.db?mode=rwc")
+        .connect(&db_url)
         .await?;
 
     Config::create(&pool).await?;
