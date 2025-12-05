@@ -1,4 +1,5 @@
-use crate::project::Project;
+use crate::theme::Theme;
+use crate::{project::Project, theme};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout},
@@ -9,7 +10,9 @@ use ratatui::{
 use rodio::Decoder;
 use std::fs::File;
 use std::io::BufReader;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
+use theme::Base16;
 
 #[derive(PartialEq)]
 pub enum Mode {
@@ -19,17 +22,17 @@ pub enum Mode {
 }
 
 pub struct Pomodoro {
-    // todo not pub
     mode: Mode,
-    pub focus: u32,
-    pub break_time: u32,
-    pub long_break: u32,
-    pub cycles: u32,
-    pub project: Project,
+    focus: u32,
+    break_time: u32,
+    long_break: u32,
+    cycles: u32,
+    project: Project,
     current_cycle: u32,
     remaining_secs: u32,
-    pub running: bool,
-    pub last_tick: Instant,
+    running: bool,
+    last_tick: Instant,
+    total_seconds: u32,
 }
 
 impl Pomodoro {
@@ -51,6 +54,7 @@ impl Pomodoro {
             remaining_secs: focus * 60,
             running: false,
             last_tick: Instant::now(),
+            total_seconds: 0,
         }
     }
 
@@ -60,8 +64,13 @@ impl Pomodoro {
         if self.last_tick.elapsed() >= tick_rate {
             if self.running && self.remaining_secs > 0 {
                 self.remaining_secs -= 1;
+                self.total_seconds += 1;
+                self.project
+                    .set_total_seconds(self.project.get_total_seconds() + 1);
+
                 if self.mode == Mode::Focus {
-                    self.project.seconds += 1;
+                    self.project
+                        .set_focus_seconds(self.project.get_focus_seconds() + 1);
                 }
             } else if self.running && self.remaining_secs == 0 {
                 self.notify();
@@ -88,9 +97,9 @@ impl Pomodoro {
 
     pub fn mode_color(&self) -> Color {
         match self.mode {
-            Mode::Focus => Color::Rgb(205, 218, 253),
-            Mode::Break => Color::Rgb(149, 213, 178), //todo
-            Mode::LongBreak => Color::Rgb(82, 183, 136), // todo
+            Mode::Focus => Color::from_str(Theme::default().get_color(Base16::Base05)).unwrap(),
+            Mode::Break => Color::from_str(Theme::default().get_color(Base16::Base0B)).unwrap(),
+            Mode::LongBreak => Color::from_str(Theme::default().get_color(Base16::Base0C)).unwrap(),
         }
     }
 
@@ -154,13 +163,21 @@ impl Pomodoro {
             .split(size);
 
         // title
-        let title = Paragraph::new(self.mode_name())
-            .style(
-                Style::default()
-                    .fg(self.mode_color())
-                    .add_modifier(Modifier::BOLD),
+        let title = Paragraph::new(format!(
+            "{}\nTOTAL: {}",
+            self.mode_name(),
+            format!(
+                "{:02}m {:02}s",
+                self.total_seconds / 60,
+                self.total_seconds % 60
             )
-            .alignment(Alignment::Center);
+        ))
+        .style(
+            Style::default()
+                .fg(self.mode_color())
+                .add_modifier(Modifier::BOLD),
+        )
+        .alignment(Alignment::Center);
         frame.render_widget(title, chunks[0]);
 
         // ASCII
@@ -190,6 +207,18 @@ impl Pomodoro {
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true });
         frame.render_widget(info_widget, chunks[3]);
+    }
+
+    pub fn get_last_tick(&self) -> Instant {
+        self.last_tick
+    }
+
+    pub fn get_project(&self) -> &Project {
+        &self.project
+    }
+
+    pub fn set_running(&mut self, running: bool) {
+        self.running = running;
     }
 }
 

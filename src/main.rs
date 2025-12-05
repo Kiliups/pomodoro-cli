@@ -8,6 +8,7 @@ mod pomodoro;
 use pomodoro::Pomodoro;
 mod project;
 use project::Project;
+mod theme;
 
 #[derive(Parser)]
 #[command(name = "pomodoro", subcommand_required = false)]
@@ -49,19 +50,19 @@ async fn main() -> Result<(), sqlx::Error> {
 
     let mut config_changed = false;
     if let Some(focus) = cli.focus {
-        config.focus = focus;
+        config.set_focus(focus);
         config_changed = true;
     }
     if let Some(break_time) = cli.break_time {
-        config.break_time = break_time;
+        config.set_break_time(break_time);
         config_changed = true;
     }
     if let Some(long_break) = cli.long_break {
-        config.long_break = long_break;
+        config.set_long_break(long_break);
         config_changed = true;
     }
     if let Some(cycles) = cli.cycles {
-        config.cycles = cycles;
+        config.set_cycles(cycles);
         config_changed = true;
     }
     if config_changed {
@@ -84,10 +85,10 @@ async fn main() -> Result<(), sqlx::Error> {
     let mut all_projects = Project::get_all(&pool).await?;
 
     let mut pomo = Pomodoro::new(
-        config.focus,
-        config.break_time,
-        config.long_break,
-        config.cycles,
+        config.get_focus(),
+        config.get_break_time(),
+        config.get_long_break(),
+        config.get_cycles(),
         project,
     );
 
@@ -101,8 +102,8 @@ async fn main() -> Result<(), sqlx::Error> {
             all_projects = all_projects
                 .into_iter()
                 .map(|project| {
-                    if project.name == pomo.project.name {
-                        pomo.project.clone()
+                    if project.get_name() == pomo.get_project().get_name() {
+                        pomo.get_project().clone()
                     } else {
                         project
                     }
@@ -113,7 +114,7 @@ async fn main() -> Result<(), sqlx::Error> {
             terminal.draw(|frame| pomo.ui(frame))?;
         }
 
-        let timeout = Duration::from_secs(1).saturating_sub(pomo.last_tick.elapsed());
+        let timeout = Duration::from_secs(1).saturating_sub(pomo.get_last_tick().elapsed());
 
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
@@ -128,18 +129,18 @@ async fn main() -> Result<(), sqlx::Error> {
                     }
                     match key.code {
                         KeyCode::Char('q') | KeyCode::Esc => {
-                            pomo.project.update(&pool).await?;
+                            pomo.get_project().update(&pool).await?;
                             break;
                         }
                         KeyCode::Char('c') | KeyCode::Char('x')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
-                            pomo.project.update(&pool).await?;
+                            pomo.get_project().update(&pool).await?;
                             break;
                         }
                         KeyCode::Char('p') => {
                             is_project = !is_project;
-                            pomo.running = false;
+                            pomo.set_running(false);
                         }
                         _ => {}
                     }

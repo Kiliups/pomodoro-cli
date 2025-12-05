@@ -3,13 +3,12 @@ use sqlx::sqlite::SqlitePool;
 
 #[derive(Debug, FromRow)]
 pub struct Config {
-    // todo not pub
     id: i64,
-    pub focus: u32,
+    focus: u32,
     #[sqlx(rename = "break")]
-    pub break_time: u32,
-    pub long_break: u32,
-    pub cycles: u32,
+    break_time: u32,
+    long_break: u32,
+    cycles: u32,
 }
 
 impl Config {
@@ -81,5 +80,37 @@ impl Config {
             .execute(pool)
             .await?;
         Ok(())
+    }
+
+    pub fn get_focus(&self) -> u32 {
+        self.focus
+    }
+
+    pub fn get_break_time(&self) -> u32 {
+        self.break_time
+    }
+
+    pub fn get_long_break(&self) -> u32 {
+        self.long_break
+    }
+
+    pub fn get_cycles(&self) -> u32 {
+        self.cycles
+    }
+
+    pub fn set_focus(&mut self, focus: u32) {
+        self.focus = focus;
+    }
+
+    pub fn set_break_time(&mut self, break_time: u32) {
+        self.break_time = break_time;
+    }
+
+    pub fn set_long_break(&mut self, long_break: u32) {
+        self.long_break = long_break;
+    }
+
+    pub fn set_cycles(&mut self, cycles: u32) {
+        self.cycles = cycles;
     }
 }
