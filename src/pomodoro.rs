@@ -155,7 +155,7 @@ impl Pomodoro {
             .direction(Direction::Vertical)
             .margin(2)
             .constraints([
-                Constraint::Length(2),
+                Constraint::Length(3),
                 Constraint::Length(5),
                 Constraint::Length(1),
                 Constraint::Min(1),
