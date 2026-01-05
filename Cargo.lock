@@ -1460,6 +1460,7 @@ dependencies = [
  "clap",
  "crossterm 0.29.0",
  "dirs",
+ "libsqlite3-sys",
  "ratatui",
  "rodio",
  "sqlx",
